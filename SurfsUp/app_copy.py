@@ -6,6 +6,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy import create_engine, func
 from dateutil import parser, relativedelta
 from flask import Flask, jsonify
+from datetime import datetime, timedelta
+from sqlalchemy import and_
+
+# Define the end_date globally
+end_date = datetime.today()
 
 #################################################
 # Database Setup
@@ -54,9 +59,9 @@ def welcome():
 #Route to retrieve precipitation data for the last 12 months
 @app.route("/api/v1.0/precipitation")  # Define a route for precipitation data
 def get_precipitation():
-    # Calculating start date 12 months before end date
+    # Calculate start date 12 months before end date
     start_date = end_date - relativedelta.relativedelta(months=12)
-    # Querying precipitation data for the last 12 months
+    # Query precipitation data for the last 12 months
     precipitations = session.query(Measurement.prcp, Measurement.date
                                   ).filter(Measurement.date >= start_date, 
                                            Measurement.date <= end_date).all()
@@ -83,14 +88,14 @@ def waihee():
     temperatures = [temp[0] for temp in waihee_query]
     
     # Return a JSON list of temperature observations for the previous year.                                                           Measurement.station == station_id)).all()
-    return jsonify(temperatures)  
+    return jsonify(temperatures) 
 
 #5 Return a JSON list of the minimum temperature, 
-# the average temperature, and the maximum temperature for a specified start-end range. 
+# the average temperature, and the maximum temperature for a specified start-end range.  
 @app.route("/api/v1.0/start_end/<start_date>/<end_date>")
 def start_end_route(start_date, end_date):
     start_date = datetime.strptime(start_date, "%Y-%m-%d") 
-    end_date = datetime.strptime(end_date, "%Y-%m-%d")  
+    end_date = datetime.strptime(end_date, "%Y-%m-%d") 
     
     temp_stats = session.query(
         func.min(Measurement.tobs).label('min_temp'),
@@ -115,4 +120,6 @@ if __name__ == '__main__':
     app.run(debug=True, port=5001)
 
 # Close out the session
-session.close()
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    session.close()
